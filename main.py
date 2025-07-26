@@ -1,14 +1,20 @@
 import os
 import time
-from api.vmos_api import vmos_post # <--- THAY ĐỔI Ở ĐÂY
+from dotenv import load_dotenv # <--- THÊM DÒNG NÀY
+from api.vmos_api import vmos_post
+
+load_dotenv() # <--- VÀ THÊM DÒNG NÀY
 
 ACCESS_KEY = os.getenv("ACCESS_KEY")
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-# ✅ Shelter APK từ GitHub raw
-APK_URL = "https://raw.githubusercontent.com/tom88901/apk_debug/main/Shelter.apk"
+# (Tùy chọn) Thêm một bước kiểm tra để báo lỗi sớm hơn và rõ ràng hơn
+if not ACCESS_KEY or not SECRET_KEY:
+    raise ValueError("❌ Lỗi: Không tìm thấy ACCESS_KEY hoặc SECRET_KEY. Hãy kiểm tra lại file .env và GitHub Secrets.")
+
 
 def get_device():
+    # ... phần còn lại của file giữ nguyên ...
     resp = vmos_post(
         "/vcpcloud/api/padApi/infos",
         {"pageNo": 1, "pageSize": 10},
@@ -48,15 +54,21 @@ def install_apk(instance_id, apk_url):
     res_json = resp.json()
     print("📥 Phản hồi cài đặt:", res_json)
     if res_json.get("code") != 200:
-        raise Exception("❌ Cài APK thất bại.")
+        # In ra thông báo lỗi từ API để dễ gỡ lỗi hơn
+        error_message = res_json.get("message", "Không có thông báo lỗi.")
+        raise Exception(f"❌ Cài APK thất bại. Phản hồi từ server: {error_message}")
     print("✅ Đã gửi yêu cầu cài APK thành công.")
 
 if __name__ == "__main__":
+    # Shelter APK từ GitHub raw
+    APK_URL = "https://raw.githubusercontent.com/tom88901/apk_debug/main/Shelter.apk"
+    
     instance_id, status = get_device()
 
     if status not in ("ONLINE", "RUNNING"):
         print(f"⚠️ Máy chưa chạy (trạng thái = {status}) → đang khởi động...")
         start_device(instance_id)
-        time.sleep(25)  # đợi máy ảo lên (có thể điều chỉnh thời gian này)
+        print("⏳ Đợi 25 giây để máy ảo khởi động...")
+        time.sleep(25)
 
     install_apk(instance_id, APK_URL)
