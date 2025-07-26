@@ -22,8 +22,8 @@ jobs:
 
     - name: 🔐 Load environment variables
       run: |
-        echo "ACCESS_KEY=${{ secrets.VMOS_ACCESS_KEY }}" >> .env
-        echo "SECRET_KEY=${{ secrets.VMOS_SECRET_KEY }}" >> .env
+        echo "ACCESS_KEY=${{ secrets.ACCESS_KEY }}" >> .env
+        echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
 
     - name: 🚀 Run install script
       run: |
