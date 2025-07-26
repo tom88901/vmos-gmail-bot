@@ -2,13 +2,14 @@ import json
 import hashlib
 import hmac
 import datetime
+import requests
 
+# Hàm tạo chữ ký đã được sửa ở lần trước
 def get_signature(data, x_date, host, content_type, signed_headers, sk):
     json_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
     x_content_sha256 = hashlib.sha256(json_str.encode()).hexdigest()
 
-    # ✅ SỬA LỖI: Xây dựng chuỗi canonical request ĐÚNG theo tài liệu
-    # Sắp xếp lại thứ tự và thêm dòng "signedHeaders" bị thiếu
+    # Xây dựng chuỗi canonical request ĐÚNG theo tài liệu
     canonical_request = (
         f"host:{host}\n"
         f"x-date:{x_date}\n"
@@ -18,10 +19,9 @@ def get_signature(data, x_date, host, content_type, signed_headers, sk):
     )
 
     short_date = x_date[:8]
-    service = "armcloud-paas" # Dịch vụ cố định [cite: 5]
+    service = "armcloud-paas"
     scope = f"{short_date}/{service}/request"
 
-    # ✅ SỬA LỖI: Sử dụng canonical_request đã được sửa
     string_to_sign = (
         f"HMAC-SHA256\n"
         f"{x_date}\n"
@@ -29,10 +29,31 @@ def get_signature(data, x_date, host, content_type, signed_headers, sk):
         f"{hashlib.sha256(canonical_request.encode()).hexdigest()}"
     )
 
-    # Phần tính toán key không đổi
     k_date = hmac.new(sk.encode(), short_date.encode(), hashlib.sha256).digest()
     k_service = hmac.new(k_date, service.encode(), hashlib.sha256).digest()
     k_signing = hmac.new(k_service, b"request", hashlib.sha256).digest()
     signature = hmac.new(k_signing, string_to_sign.encode(), hashlib.sha256).hexdigest()
 
     return signature, x_content_sha256
+
+# ✅ Hàm vmos_post quan trọng bị thiếu đã được thêm lại
+def vmos_post(path, data, access_key, secret_key):
+    host = "api.vmoscloud.com"
+    url = f"https://{host}{path}"
+    content_type = "application/json;charset=UTF-8"
+    signed_headers = "content-type;host;x-content-sha256;x-date"
+    x_date = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+
+    signature, x_content_sha256 = get_signature(
+        data, x_date, host, content_type, signed_headers, secret_key
+    )
+
+    headers = {
+        "Content-Type": content_type,
+        "Host": host,
+        "X-Date": x_date,
+        "X-Content-Sha256": x_content_sha256,
+        "Authorization": f"HMAC-SHA256 Credential={access_key}, SignedHeaders={signed_headers}, Signature={signature}",
+    }
+
+    return requests.post(url, headers=headers, json=data)
