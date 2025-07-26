@@ -18,35 +18,41 @@ if not ACCESS_KEY or not SECRET_KEY:
     raise ValueError("❌ Lỗi: Không tìm thấy ACCESS_KEY hoặc SECRET_KEY. Hãy kiểm tra lại file .env và GitHub Secrets.")
 
 def get_device():
-    print("🔎 Đang gửi yêu cầu lấy danh sách máy ảo...")
+    # SỬ DỤNG ĐƯỜNG DẪN API V1 MỚI
+    api_path = "/v1/devices"
+    payload = {"page": 1, "per_page": 10} # API v1 thường dùng tham số này
+
+    print(f"🔎 Đang gửi yêu cầu đến API mới: {api_path}")
     resp = vmos_post(
-        "/vcpcloud/api/padApi/infos",
-        {"pageNo": 1, "pageSize": 10},
+        api_path,
+        payload,
         ACCESS_KEY,
         SECRET_KEY
     )
     
-    # --- BẮT ĐẦU MÃ GỠ LỖI ---
     print(f"🚦 Trạng thái phản hồi (Status Code): {resp.status_code}")
-    
-    try:
-        res_json = resp.json()
-        print("📋 Nội dung phản hồi đầy đủ (JSON):")
-        # Dùng json.dumps để in đẹp hơn, dễ đọc hơn
-        print(json.dumps(res_json, indent=2, ensure_ascii=False))
-    except Exception as e:
-        print(f"⚠️ Không thể phân tích JSON. Nội dung thô: {resp.text}")
-        raise e
-    # --- KẾT THÚC MÃ GỠ LỖI ---
+    res_json = resp.json()
+    print("📋 Nội dung phản hồi đầy đủ (JSON):")
+    print(json.dumps(res_json, indent=2, ensure_ascii=False))
 
-    pads = res_json.get("data", {}).get("list", [])
+    # Xử lý các lỗi có thể xảy ra từ API
+    if resp.status_code != 200:
+        error_message = res_json.get("message", "Lỗi không xác định.")
+        raise Exception(f"API trả về lỗi HTTP {resp.status_code}: {error_message}")
+
+    # API v1 có thể trả về danh sách thiết bị trong key 'devices' hoặc 'data'
+    pads = res_json.get("devices", []) or res_json.get("data", [])
     if not pads:
-        # Lỗi vẫn sẽ được đưa ra, nhưng bây giờ chúng ta có log chi tiết ở trên
-        raise Exception("❌ Không tìm thấy máy ảo nào trong danh sách 'list'.")
+        raise Exception("Không tìm thấy máy ảo nào trong phản hồi từ API v1.")
     
     pad = pads[0]
-    print(f"✅ Dùng máy ảo duy nhất: {pad['padName']} | ID: {pad['padCode']} | Trạng thái: {pad.get('status')}")
-    return pad["padCode"], pad.get("status")
+    # API v1 có thể dùng 'name' và 'id' thay vì 'padName' và 'padCode'
+    pad_name = pad.get("name", "N/A")
+    pad_id = pad.get("id", "N/A")
+    pad_status = pad.get("status", "N/A")
+
+    print(f"✅ Dùng máy ảo duy nhất: {pad_name} | ID: {pad_id} | Trạng thái: {pad_status}")
+    return pad_id, pad_status
 
 def start_device(instance_id):
     print("🚀 Đang gửi yêu cầu khởi động máy ảo...")
