@@ -2,7 +2,8 @@ import os
 import time
 import json
 from dotenv import load_dotenv
-from api.vmos_api import vmos_post
+# Import cả vmos_get và vmos_post
+from api.vmos_api import vmos_get, vmos_post
 
 # Nạp các biến môi trường từ file .env
 load_dotenv() 
@@ -18,14 +19,12 @@ if not ACCESS_KEY or not SECRET_KEY:
     raise ValueError("❌ Lỗi: Không tìm thấy ACCESS_KEY hoặc SECRET_KEY. Hãy kiểm tra lại file .env và GitHub Secrets.")
 
 def get_device():
-    # SỬ DỤNG ĐƯỜNG DẪN API V1 MỚI
-    api_path = "/v1/devices"
-    payload = {"page": 1, "per_page": 10} # API v1 thường dùng tham số này
-
-    print(f"🔎 Đang gửi yêu cầu đến API mới: {api_path}")
-    resp = vmos_post(
-        api_path,
-        payload,
+    print("🔎 Đang gửi yêu cầu GET để lấy danh sách máy ảo...")
+    
+    # Gọi hàm vmos_get với tham số là chuỗi
+    resp = vmos_get(
+        "/vcpcloud/api/padApi/infos",
+        {"pageNo": "1", "pageSize": "10"},
         ACCESS_KEY,
         SECRET_KEY
     )
@@ -35,20 +34,19 @@ def get_device():
     print("📋 Nội dung phản hồi đầy đủ (JSON):")
     print(json.dumps(res_json, indent=2, ensure_ascii=False))
 
-    # Xử lý các lỗi có thể xảy ra từ API
-    if resp.status_code != 200:
-        error_message = res_json.get("message", "Lỗi không xác định.")
-        raise Exception(f"API trả về lỗi HTTP {resp.status_code}: {error_message}")
+    # Xử lý lỗi một cách toàn diện
+    if resp.status_code != 200 or res_json.get("code") != 200:
+        error_message = res_json.get("message") or res_json.get("msg", "Lỗi không xác định từ API.")
+        raise Exception(f"API trả về lỗi: {error_message}")
 
-    # API v1 có thể trả về danh sách thiết bị trong key 'devices' hoặc 'data'
-    pads = res_json.get("devices", []) or res_json.get("data", [])
+    pads = res_json.get("data", {}).get("list", [])
     if not pads:
-        raise Exception("Không tìm thấy máy ảo nào trong phản hồi từ API v1.")
+        raise Exception("Không tìm thấy máy ảo nào trong phản hồi từ API.")
     
     pad = pads[0]
-    # API v1 có thể dùng 'name' và 'id' thay vì 'padName' và 'padCode'
-    pad_name = pad.get("name", "N/A")
-    pad_id = pad.get("id", "N/A")
+    # Lấy thông tin máy ảo từ các key chính xác
+    pad_name = pad.get("padName", "N/A")
+    pad_id = pad.get("padCode", "N/A")
     pad_status = pad.get("status", "N/A")
 
     print(f"✅ Dùng máy ảo duy nhất: {pad_name} | ID: {pad_id} | Trạng thái: {pad_status}")
@@ -56,6 +54,7 @@ def get_device():
 
 def start_device(instance_id):
     print("🚀 Đang gửi yêu cầu khởi động máy ảo...")
+    # Khởi động vẫn dùng POST
     resp = vmos_post(
         "/vcpcloud/api/padApi/start",
         {"instanceId": instance_id},
@@ -66,6 +65,7 @@ def start_device(instance_id):
 
 def install_apk(instance_id, apk_url):
     print("📦 Gửi yêu cầu cài đặt APK...")
+    # Cài đặt vẫn dùng POST
     resp = vmos_post(
         "/vcpcloud/api/appApi/installApp",
         {
