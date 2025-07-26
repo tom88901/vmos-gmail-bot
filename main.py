@@ -1,6 +1,6 @@
 import os
 import time
-from vmos_api import vmos_post
+from api.vmos_api import vmos_post # <--- THAY ĐỔI Ở ĐÂY
 
 ACCESS_KEY = os.getenv("ACCESS_KEY")
 SECRET_KEY = os.getenv("SECRET_KEY")
