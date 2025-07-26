@@ -32,34 +32,29 @@ def get_signature(data, x_date, host, content_type, signed_headers, sk):
     k_signing = hmac.new(k_service, b"request", hashlib.sha256).digest()
     signature = hmac.new(k_signing, string_to_sign.encode(), hashlib.sha256).hexdigest()
 
-    return signature, x_content_sha256, scope
+    return signature, x_content_sha256
 
 def vmos_post(path, data, access_key, secret_key):
-    # Sử dụng máy chủ ĐÚNG cho vùng Hong Kong
-    host = "openapi-hk.armcloud.net"
-    # Tài liệu API dùng cả http và https, nhưng https an toàn và phổ biến hơn
+    # ✅ SỬ DỤNG HOST MỚI NHẤT VÀ ĐÁNG TIN CẬY NHẤT
+    host = "api.vmoscloud.com"
+    
     url = f"https://{host}{path}"
     
     content_type = "application/json;charset=UTF-8"
     signed_headers = "content-type;host;x-content-sha256;x-date"
     x_date = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
 
-    signature, x_content_sha256, scope = get_signature(
+    signature, x_content_sha256 = get_signature(
         data, x_date, host, content_type, signed_headers, secret_key
     )
 
-    # ✅ SỬA LỖI QUAN TRỌNG NHẤT: Tạo tiêu đề Authorization với định dạng đầy đủ
-    authorization_header = (
-        f"HMAC-SHA256 Credential={access_key}/{scope}, "
-        f"SignedHeaders={signed_headers}, Signature={signature}"
-    )
-
+    # Sử dụng định dạng Authorization đơn giản phù hợp với host này
     headers = {
         "Content-Type": content_type,
         "Host": host,
         "X-Date": x_date,
         "X-Content-Sha256": x_content_sha256,
-        "Authorization": authorization_header, # Sử dụng tiêu đề đã sửa
+        "Authorization": f"HMAC-SHA256 Credential={access_key}, SignedHeaders={signed_headers}, Signature={signature}",
     }
 
     return requests.post(url, headers=headers, json=data)

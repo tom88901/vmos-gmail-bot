@@ -20,7 +20,7 @@ if not ACCESS_KEY or not SECRET_KEY:
 def get_device():
     print("🔎 Đang gửi yêu cầu POST đến /vcpcloud/api/padApi/infos...")
     
-    # ✅ Sửa lại để gọi POST với tham số ĐÚNG theo tài liệu
+    # Sử dụng tham số ĐÚNG theo tài liệu chi tiết
     payload = {"page": 1, "rows": 10}
     
     resp = vmos_post(
@@ -40,7 +40,7 @@ def get_device():
         error_message = res_json.get("msg", "Lỗi không xác định từ API.")
         raise Exception(f"API trả về lỗi: {error_message} (Code: {res_json.get('code')})")
     
-    # ✅ Dùng key 'pageData' thay vì 'list' theo tài liệu mới
+    # Dùng key 'pageData' theo tài liệu
     pads = res_json.get("data", {}).get("pageData", [])
     if not pads:
         raise Exception("Không tìm thấy máy ảo nào trong key 'pageData' của phản hồi.")
@@ -48,7 +48,7 @@ def get_device():
     pad = pads[0]
     pad_name = pad.get("padName", "N/A")
     pad_id = pad.get("padCode", "N/A")
-    pad_status = pad.get("padStatus", "N/A") # Dùng key 'padStatus'
+    pad_status = pad.get("padStatus", "N/A")
 
     print(f"✅ Dùng máy ảo duy nhất: {pad_name} | ID: {pad_id} | Trạng thái: {pad_status}")
     return pad_id, pad_status
@@ -56,8 +56,8 @@ def get_device():
 def start_device(instance_id):
     print("🚀 Đang gửi yêu cầu khởi động máy ảo...")
     resp = vmos_post(
-        "/vcpcloud/api/padApi/start", # Đường dẫn này có thể cần kiểm tra lại
-        {"instanceId": instance_id},
+        "/vcpcloud/api/padApi/start",
+        {"instanceId": instance_id}, # Tham số này có thể cần xác nhận lại
         ACCESS_KEY,
         SECRET_KEY
     )
@@ -66,7 +66,7 @@ def start_device(instance_id):
 def install_apk(instance_id, apk_url):
     print("📦 Gửi yêu cầu cài đặt APK...")
     resp = vmos_post(
-        "/vcpcloud/api/appApi/installApp", # Đường dẫn này đúng theo tài liệu
+        "/vcpcloud/api/appApi/installApp",
         {
             "instanceId": instance_id,
             "url": apk_url,
@@ -85,9 +85,8 @@ def install_apk(instance_id, apk_url):
 if __name__ == "__main__":
     instance_id, status = get_device()
     
-    # Chuyển đổi trạng thái từ số sang chữ để so sánh
-    # 10 là đang chạy (running) theo tài liệu
-    is_running = (status == 10 or str(status).upper() == "RUNNING" or str(status).upper() == "ONLINE")
+    # Trạng thái 10 là đang chạy (running) theo tài liệu
+    is_running = (status == 10 or str(status).upper() in ["RUNNING", "ONLINE"])
 
     if not is_running:
         print(f"⚠️ Máy chưa chạy (trạng thái = {status}) → đang khởi động...")
