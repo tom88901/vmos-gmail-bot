@@ -35,9 +35,8 @@ def get_signature(data, x_date, host, content_type, signed_headers, sk):
     return signature, x_content_sha256
 
 def vmos_post(path, data, access_key, secret_key):
-    # ✅ THAY ĐỔI CUỐI CÙNG VÀ QUAN TRỌNG NHẤT
-    # Thay thế bằng địa chỉ máy chủ Hong Kong từ tài liệu
-    host = "api.hk-vmos.com"
+    # ✅ ĐỊA CHỈ MÁY CHỦ CHÍNH XÁC TỪ TÀI LIỆU
+    host = "openapi-hk.armcloud.net"
     
     url = f"https://{host}{path}"
     
