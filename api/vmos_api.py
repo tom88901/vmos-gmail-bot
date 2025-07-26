@@ -35,8 +35,10 @@ def get_signature(data, x_date, host, content_type, signed_headers, sk):
     return signature, x_content_sha256
 
 def vmos_post(path, data, access_key, secret_key):
-    # Sử dụng lại máy chủ API gốc để gỡ lỗi
-    host = "api.vmoscloud.com"
+    # ✅ THAY ĐỔI CUỐI CÙNG VÀ QUAN TRỌNG NHẤT
+    # Thay thế bằng địa chỉ máy chủ Hong Kong từ tài liệu
+    host = "DÁN_ĐỊA_CHỈ_MÁY_CHỦ_HONG_KONG_TÌM_ĐƯỢC_VÀO_ĐÂY"
+    
     url = f"https://{host}{path}"
     
     content_type = "application/json;charset=UTF-8"
