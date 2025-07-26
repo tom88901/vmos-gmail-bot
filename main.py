@@ -1,50 +1,62 @@
 import os
-from dotenv import load_dotenv
-from api.vmos_api import vmos_post
-from api.apk_manager import install_apk
+import time
+from api.auth import vmos_post
 
-load_dotenv()
 ACCESS_KEY = os.getenv("ACCESS_KEY")
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-def get_running_instance_id():
+# ✅ Shelter APK từ GitHub raw
+APK_URL = "https://raw.githubusercontent.com/tom88901/apk_debug/main/Shelter.apk"
+
+def get_device():
     resp = vmos_post(
         "/vcpcloud/api/padApi/infos",
         {"pageNo": 1, "pageSize": 10},
         ACCESS_KEY,
         SECRET_KEY
     )
-
     pads = resp.json().get("data", {}).get("list", [])
-    print("📋 Danh sách máy ảo:")
-    for pad in pads:
-        print(f"  • {pad['padName']} | ID: {pad['padCode']} | Trạng thái: {pad.get('status')}")
+    if not pads:
+        raise Exception("❌ Không tìm thấy máy ảo nào.")
+    
+    pad = pads[0]
+    print(f"✅ Dùng máy ảo duy nhất: {pad['padName']} | ID: {pad['padCode']} | Trạng thái: {pad.get('status')}")
+    return pad["padCode"], pad.get("status")
 
-    for pad in pads:
-        if pad.get("status") in ["ONLINE", "RUNNING", "ACTIVE"]:
-            print(f"✅ Chọn máy: {pad['padName']} ({pad['padCode']})")
-            return pad["padCode"]
-
-    raise Exception("❌ Không có máy ảo nào ONLINE/RUNNING.")
-
-def get_token(instance_id):
+def start_device(instance_id):
+    print("🚀 Đang gửi yêu cầu khởi động máy ảo...")
     resp = vmos_post(
-        "/vcpcloud/api/padApi/stsToken",
+        "/vcpcloud/api/padApi/start",
         {"instanceId": instance_id},
         ACCESS_KEY,
         SECRET_KEY
     )
+    print("📨 Phản hồi:", resp.json())
 
-    data = resp.json()
-    if data.get("code") == 0:
-        return data["data"]["token"]
-
-    raise Exception(f"❌ Token API lỗi: {data}")
-
+def install_apk(instance_id, apk_url):
+    print("📦 Gửi yêu cầu cài đặt APK...")
+    resp = vmos_post(
+        "/vcpcloud/api/appApi/installApp",
+        {
+            "instanceId": instance_id,
+            "url": apk_url,
+            "isAutoStart": False
+        },
+        ACCESS_KEY,
+        SECRET_KEY
+    )
+    res_json = resp.json()
+    print("📥 Phản hồi cài đặt:", res_json)
+    if res_json.get("code") != 200:
+        raise Exception("❌ Cài APK thất bại.")
+    print("✅ Đã gửi yêu cầu cài APK thành công.")
 
 if __name__ == "__main__":
-    instance_id = get_running_instance_id()
-    token = get_token(instance_id)
+    instance_id, status = get_device()
 
-    apk_url = "https://raw.githubusercontent.com/tom88901/apk_debug/main/Shelter.apk"
-    install_apk(instance_id, token, apk_url)
+    if status not in ("ONLINE", "RUNNING"):
+        print(f"⚠️ Máy chưa chạy (trạng thái = {status}) → đang khởi động...")
+        start_device(instance_id)
+        time.sleep(25)  # đợi máy ảo lên (có thể điều chỉnh thời gian này)
+
+    install_apk(instance_id, APK_URL)
