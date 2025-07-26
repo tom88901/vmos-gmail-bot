@@ -38,7 +38,12 @@ def get_signature(data, x_date, host, content_type, signed_headers, sk):
 
 # ✅ Hàm vmos_post quan trọng bị thiếu đã được thêm lại
 def vmos_post(path, data, access_key, secret_key):
-    host = "openapi-hk.armcloud.net"  # <-- THAY ĐỔI MÁY CHỦ API SANG VÙNG HONG KONG
+    # 1. Đảm bảo host trỏ đúng vùng Hong Kong
+    host = "openapi-hk.armcloud.net"
+    
+    # 2. ✅ KHÔI PHỤC LẠI DÒNG NÀY: Tạo biến 'url' từ host và path
+    url = f"https://{host}{path}"
+    
     content_type = "application/json;charset=UTF-8"
     signed_headers = "content-type;host;x-content-sha256;x-date"
     x_date = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
@@ -55,4 +60,5 @@ def vmos_post(path, data, access_key, secret_key):
         "Authorization": f"HMAC-SHA256 Credential={access_key}, SignedHeaders={signed_headers}, Signature={signature}",
     }
 
+    # 3. Sử dụng biến 'url' đã được định nghĩa
     return requests.post(url, headers=headers, json=data)
