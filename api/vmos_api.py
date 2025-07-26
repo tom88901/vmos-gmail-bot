@@ -38,8 +38,7 @@ def get_signature(data, x_date, host, content_type, signed_headers, sk):
 
 # ✅ Hàm vmos_post quan trọng bị thiếu đã được thêm lại
 def vmos_post(path, data, access_key, secret_key):
-    host = "api.vmoscloud.com"
-    url = f"https://{host}{path}"
+    host = "openapi-hk.armcloud.net"  # <-- THAY ĐỔI MÁY CHỦ API SANG VÙNG HONG KONG
     content_type = "application/json;charset=UTF-8"
     signed_headers = "content-type;host;x-content-sha256;x-date"
     x_date = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
