@@ -1,31 +1,30 @@
 import os
-import requests
 from dotenv import load_dotenv
+from api.vmos_api import vmos_post
 from api.apk_manager import install_apk
 
 load_dotenv()
-
 ACCESS_KEY = os.getenv("ACCESS_KEY")
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-# ✅ B1: Lấy token và instance_id
 def get_token_and_instance():
-    url = "https://api.vmos.cn/v1/auth"
-    resp = requests.post(url, json={
-        "access_key": ACCESS_KEY,
-        "secret_key": SECRET_KEY
-    })
+    url_path = "/vcpcloud/api/padApi/stsToken"  # hoặc đường dẫn chính xác từ VMOS
+    data = {}
+    response = vmos_post(url_path, data, ACCESS_KEY, SECRET_KEY)
+    if response.status_code != 200:
+        print("❌ VMOS API lỗi:", response.status_code, response.text)
+        raise Exception("❌ Không lấy được token")
+    
+    resp_json = response.json()
+    print("📦 Res:", resp_json)
 
-    if resp.status_code != 200:
-        raise Exception("❌ Lỗi lấy token")
-
-    data = resp.json().get("data", {})
-    token = data.get("token")
-    instance_id = data.get("instance_id")
-    print(f"✅ Token & Instance ID lấy thành công.")
+    if resp_json.get("code") != 0:
+        raise Exception("❌ Token API trả lỗi: " + str(resp_json))
+    
+    token = resp_json["data"]["token"]
+    instance_id = resp_json["data"]["instance_id"]
     return token, instance_id
 
 if __name__ == "__main__":
     token, instance_id = get_token_and_instance()
-    apk_url = "https://raw.githubusercontent.com/tom88901/apk_debug/main/Shelter.apk"
-    install_apk(instance_id, token, apk_url)
+    install_apk(instance_id, token, "https://raw.githubusercontent.com/tom88901/apk_debug/main/Shelter.apk")
