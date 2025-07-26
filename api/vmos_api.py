@@ -4,12 +4,10 @@ import hmac
 import datetime
 import requests
 
-# Hàm tạo chữ ký đã được sửa ở lần trước
 def get_signature(data, x_date, host, content_type, signed_headers, sk):
     json_str = json.dumps(data, separators=(',', ':'), ensure_ascii=False)
     x_content_sha256 = hashlib.sha256(json_str.encode()).hexdigest()
 
-    # Xây dựng chuỗi canonical request ĐÚNG theo tài liệu
     canonical_request = (
         f"host:{host}\n"
         f"x-date:{x_date}\n"
@@ -36,12 +34,9 @@ def get_signature(data, x_date, host, content_type, signed_headers, sk):
 
     return signature, x_content_sha256
 
-# ✅ Hàm vmos_post quan trọng bị thiếu đã được thêm lại
 def vmos_post(path, data, access_key, secret_key):
-    # 1. Đảm bảo host trỏ đúng vùng Hong Kong
-    host = "openapi-hk.armcloud.net"
-    
-    # 2. ✅ KHÔI PHỤC LẠI DÒNG NÀY: Tạo biến 'url' từ host và path
+    # Sử dụng lại máy chủ API gốc để gỡ lỗi
+    host = "api.vmoscloud.com"
     url = f"https://{host}{path}"
     
     content_type = "application/json;charset=UTF-8"
@@ -60,5 +55,4 @@ def vmos_post(path, data, access_key, secret_key):
         "Authorization": f"HMAC-SHA256 Credential={access_key}, SignedHeaders={signed_headers}, Signature={signature}",
     }
 
-    # 3. Sử dụng biến 'url' đã được định nghĩa
     return requests.post(url, headers=headers, json=data)
